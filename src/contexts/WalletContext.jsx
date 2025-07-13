@@ -22,14 +22,14 @@ export const WalletProvider = ({ children }) => {
   // Shardeum Sphinx network configuration
   const SHARDEUM_CONFIG = {
     chainId: '0x1F93', // 8083 in decimal
-    chainName: 'Shardeum Sphinx 1.X',
+    chainName: 'Shardeum Testnet',
     nativeCurrency: {
       name: 'SHM',
       symbol: 'SHM',
       decimals: 18,
     },
     rpcUrls: ['https://api-testnet.shardeum.org/'],
-    blockExplorerUrls: ['https://explorer-sphinx.shardeum.org/'],
+    blockExplorerUrls: ['https://explorer-testnet.shardeum.org/'],
   }
 
   const connectWallet = async () => {

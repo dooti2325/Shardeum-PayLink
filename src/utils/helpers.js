@@ -147,11 +147,84 @@ export const getTransactionType = (from, to, currentAddress) => {
  */
 export const openInExplorer = (txHash, network = 'shardeum') => {
   const explorers = {
-    shardeum: `https://explorer-sphinx.shardeum.org/tx/${txHash}`,
+    shardeum: `https://explorer-testnet.shardeum.org/tx/${txHash}`,
     ethereum: `https://etherscan.io/tx/${txHash}`,
     polygon: `https://polygonscan.com/tx/${txHash}`
   }
   
   const url = explorers[network] || explorers.shardeum
   window.open(url, '_blank')
+}
+
+/**
+ * Check transaction status using eth_getTransactionReceipt
+ * @param {Object} provider - Ethers provider
+ * @param {string} txHash - Transaction hash
+ * @returns {Promise<Object>} - Transaction status and receipt
+ */
+export const checkTransactionStatus = async (provider, txHash) => {
+  try {
+    const receipt = await provider.getTransactionReceipt(txHash)
+    
+    if (receipt) {
+      return {
+        status: receipt.status === 1 ? 'confirmed' : 'failed',
+        receipt,
+        confirmations: receipt.confirmations || 0,
+        gasUsed: receipt.gasUsed.toString(),
+        blockNumber: receipt.blockNumber.toString()
+      }
+    }
+    
+    // Transaction not yet mined
+    const tx = await provider.getTransaction(txHash)
+    if (tx) {
+      return {
+        status: 'pending',
+        confirmations: tx.confirmations || 0,
+        receipt: null
+      }
+    }
+    
+    return {
+      status: 'unknown',
+      receipt: null
+    }
+  } catch (error) {
+    console.error('Error checking transaction status:', error)
+    throw error
+  }
+}
+
+/**
+ * Format gas used for display
+ * @param {string|number} gasUsed - Gas used in wei
+ * @returns {string} - Formatted gas used
+ */
+export const formatGasUsed = (gasUsed) => {
+  const gas = parseInt(gasUsed)
+  if (gas > 1000000) {
+    return `${(gas / 1000000).toFixed(2)}M`
+  } else if (gas > 1000) {
+    return `${(gas / 1000).toFixed(2)}K`
+  }
+  return gas.toString()
+}
+
+/**
+ * Get transaction status color
+ * @param {string} status - Transaction status
+ * @returns {string} - Tailwind color class
+ */
+export const getStatusColor = (status) => {
+  switch (status) {
+    case 'confirmed':
+      return 'text-green-600'
+    case 'failed':
+      return 'text-red-600'
+    case 'pending':
+      return 'text-yellow-600'
+    default:
+      return 'text-gray-600'
+  }
 } 

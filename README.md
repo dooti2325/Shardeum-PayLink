@@ -59,11 +59,11 @@ A modern dApp that allows users to create payment request links and QR codes for
 
 The app automatically configures the Shardeum Sphinx network in MetaMask. Network details:
 
-- **Network Name**: Shardeum Sphinx 1.X
-- **RPC URL**: https://sphinx.shardeum.org/
-- **Chain ID**: 8083 (0x1f91)
+- **Network Name**: Shardeum PayLink
+- **RPC URL**: https://api-testnet.shardeum.org/
+- **Chain ID**: 8083 (0x1f93)
 - **Currency Symbol**: SHM
-- **Block Explorer**: https://explorer-sphinx.shardeum.org/
+- **Block Explorer**: https://explorer-testnet.shardeum.org/
 
 ## 📱 How to Use
 

@@ -1,7 +1,7 @@
 import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useWallet } from '../contexts/WalletContext'
-import { Wallet, QrCode, History, Plus, Home } from 'lucide-react'
+import { Wallet, QrCode, History, Plus, Home, Users } from 'lucide-react'
 
 const Header = () => {
   const { account, connectWallet, disconnectWallet, balance, isConnecting } = useWallet()
@@ -61,6 +61,18 @@ const Header = () => {
               >
                 <QrCode size={16} />
                 <span>Scan QR</span>
+              </Link>
+              
+              <Link
+                to="/split"
+                className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-colors ${
+                  isActive('/split') 
+                    ? 'bg-shardeum-100 text-shardeum-700' 
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                }`}
+              >
+                <Users size={16} />
+                <span>Split Payment</span>
               </Link>
               
               <Link
@@ -146,6 +158,18 @@ const Header = () => {
             >
               <QrCode size={20} />
               <span className="text-xs">Scan</span>
+            </Link>
+            
+            <Link
+              to="/split"
+              className={`flex flex-col items-center space-y-1 px-3 py-2 rounded-lg transition-colors ${
+                isActive('/split') 
+                  ? 'bg-shardeum-100 text-shardeum-700' 
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+              }`}
+            >
+              <Users size={20} />
+              <span className="text-xs">Split</span>
             </Link>
             
             <Link

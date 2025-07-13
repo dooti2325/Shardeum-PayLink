@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Html5QrcodeScanner } from 'html5-qrcode'
 import { QrCode, Camera, AlertCircle, CheckCircle } from 'lucide-react'
 import { ethers } from 'ethers'
+import { decodeSecurePaymentLink } from '../utils/paymentUtils'
 
 const QRScanner = () => {
   const navigate = useNavigate()
@@ -10,6 +11,17 @@ const QRScanner = () => {
   const [scannedData, setScannedData] = useState(null)
   const [error, setError] = useState(null)
   const scannerRef = useRef(null)
+
+  // Clear expired data on mount
+  useEffect(() => {
+    if (scannedData?.type === 'payment') {
+      const result = decodeSecurePaymentLink(scannedData.requestId)
+      if (result.error) {
+        setScannedData(null)
+        setError('Scanned payment link has expired')
+      }
+    }
+  }, [scannedData])
 
   useEffect(() => {
     return () => {
@@ -71,6 +83,16 @@ const QRScanner = () => {
       // Check if it's a valid payment link for our app
       if (decodedText.includes('/pay/')) {
         const requestId = decodedText.split('/pay/')[1]
+        
+        // Validate the payment link
+        const result = decodeSecurePaymentLink(requestId)
+        if (result.error) {
+          setError(result.error)
+          // Clear any existing scanned data when link is invalid/expired
+          setScannedData(null)
+          return
+        }
+        
         setScannedData({ type: 'payment', requestId })
         stopScanner()
         return

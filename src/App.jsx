@@ -7,6 +7,7 @@ import CreatePayment from './pages/CreatePayment'
 import PayRequest from './pages/PayRequest'
 import History from './pages/History'
 import QRScanner from './pages/QRScanner'
+import PaymentSplit from './pages/PaymentSplit'
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
               <Route path="/pay/:requestId" element={<PayRequest />} />
               <Route path="/history" element={<History />} />
               <Route path="/scan" element={<QRScanner />} />
+              <Route path="/split" element={<PaymentSplit />} />
             </Routes>
           </main>
         </div>

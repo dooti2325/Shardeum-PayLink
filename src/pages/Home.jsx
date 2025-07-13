@@ -1,7 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { useWallet } from '../contexts/WalletContext'
-import { QrCode, Plus, History, Wallet, ArrowRight, Sparkles } from 'lucide-react'
+import { QrCode, Plus, History, Wallet, ArrowRight, Sparkles, Users } from 'lucide-react'
 
 const Home = () => {
   const { account, balance } = useWallet()
@@ -20,6 +20,13 @@ const Home = () => {
       description: 'Scan QR codes to quickly pay with pre-filled transaction details',
       link: '/scan',
       color: 'bg-green-500'
+    },
+    {
+      icon: <Users className="w-6 h-6" />,
+      title: 'Split Payments',
+      description: 'Split a total amount among multiple recipients automatically',
+      link: '/split',
+      color: 'bg-orange-500'
     },
     {
       icon: <History className="w-6 h-6" />,

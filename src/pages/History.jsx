@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useWallet } from '../contexts/WalletContext'
-import { Clock, ArrowUpRight, ArrowDownLeft, ExternalLink, Filter } from 'lucide-react'
+import { Clock, ArrowUpRight, ArrowDownLeft, ExternalLink, Filter, CheckCircle, XCircle } from 'lucide-react'
+import TransactionStatus from '../components/TransactionStatus'
 
 const History = () => {
   const { account, getTransactionHistory } = useWallet()
@@ -8,6 +9,7 @@ const History = () => {
   const [isLoading, setIsLoading] = useState(false)
   const [filter, setFilter] = useState('all') // all, sent, received
   const [error, setError] = useState(null)
+  const [selectedTx, setSelectedTx] = useState(null)
 
   // Mock transaction data for demonstration
   const mockTransactions = [
@@ -106,7 +108,11 @@ const History = () => {
   }
 
   const openExplorer = (hash) => {
-    window.open(`https://explorer-sphinx.shardeum.org/tx/${hash}`, '_blank')
+    window.open(`https://explorer-testnet.shardeum.org/tx/${hash}`, '_blank')
+  }
+
+  const showTransactionDetails = (tx) => {
+    setSelectedTx(tx)
   }
 
   if (!account) {
@@ -206,41 +212,71 @@ const History = () => {
                   </div>
                 </div>
                 
-                <div className="text-right">
-                  <div className="text-sm text-gray-500 mb-1">
-                    {formatTimestamp(tx.timestamp)}
-                  </div>
-                  <button
-                    onClick={() => openExplorer(tx.hash)}
-                    className="text-shardeum-600 hover:text-shardeum-700 flex items-center space-x-1 text-sm"
-                  >
-                    <span>View</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </button>
-                </div>
+                                 <div className="text-right">
+                   <div className="text-sm text-gray-500 mb-1">
+                     {formatTimestamp(tx.timestamp)}
+                   </div>
+                   <div className="flex items-center space-x-2">
+                     <button
+                       onClick={() => showTransactionDetails(tx)}
+                       className="text-shardeum-600 hover:text-shardeum-700 flex items-center space-x-1 text-sm"
+                     >
+                       <span>Details</span>
+                     </button>
+                     <button
+                       onClick={() => openExplorer(tx.hash)}
+                       className="text-shardeum-600 hover:text-shardeum-700 flex items-center space-x-1 text-sm"
+                     >
+                       <span>View</span>
+                       <ExternalLink className="w-3 h-3" />
+                     </button>
+                   </div>
+                 </div>
               </div>
             </div>
           ))}
         </div>
-      )}
+             )}
 
-      {/* Network Info */}
-      <div className="card mt-8">
+       {/* Transaction Details Modal */}
+       {selectedTx && (
+         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+             <div className="flex justify-between items-center mb-4">
+               <h3 className="text-lg font-semibold">Transaction Details</h3>
+               <button
+                 onClick={() => setSelectedTx(null)}
+                 className="text-gray-500 hover:text-gray-700"
+               >
+                 ✕
+               </button>
+             </div>
+             <TransactionStatus 
+               txHash={selectedTx.hash}
+               onComplete={() => setSelectedTx(null)}
+               onError={() => setSelectedTx(null)}
+             />
+           </div>
+         </div>
+       )}
+
+       {/* Network Info */}
+       <div className="card mt-8">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Network Information</h3>
         <div className="grid md:grid-cols-2 gap-4 text-sm">
           <div>
             <span className="text-gray-600">Network:</span>
-            <span className="ml-2 font-medium">Shardeum Sphinx 1.X</span>
+            <span className="ml-2 font-medium">Shardeum Testnet</span>
           </div>
           <div>
             <span className="text-gray-600">Block Explorer:</span>
             <a 
-              href="https://explorer-sphinx.shardeum.org" 
+              href="https://explorer-testnet.shardeum.org/" 
               target="_blank" 
               rel="noopener noreferrer"
               className="ml-2 text-shardeum-600 hover:text-shardeum-700"
             >
-              explorer-sphinx.shardeum.org
+              explorer-testnet.shardeum.org
             </a>
           </div>
         </div>

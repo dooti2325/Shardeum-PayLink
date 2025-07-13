@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useWallet } from '../contexts/WalletContext'
-import { Send, AlertCircle, CheckCircle, XCircle, Loader } from 'lucide-react'
+import { Send, AlertCircle, CheckCircle, XCircle, Loader, Clock } from 'lucide-react'
+import TransactionStatus from '../components/TransactionStatus'
+import { decodeSecurePaymentLink, getTimeRemaining, formatTimeRemaining } from '../utils/paymentUtils'
+import CountdownTimer from '../components/CountdownTimer'
 
 const PayRequest = () => {
   const { requestId } = useParams()
@@ -14,12 +17,21 @@ const PayRequest = () => {
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(false)
   const [txHash, setTxHash] = useState('')
+  const [showTransactionStatus, setShowTransactionStatus] = useState(false)
+  const [linkExpired, setLinkExpired] = useState(false)
 
   useEffect(() => {
     try {
-      const decodedData = atob(requestId)
-      const data = JSON.parse(decodedData)
-      setPaymentData(data)
+      const result = decodeSecurePaymentLink(requestId)
+      
+      if (result.error) {
+        setError(result.error)
+        if (result.error.includes('expired')) {
+          setLinkExpired(true)
+        }
+      } else {
+        setPaymentData(result)
+      }
     } catch (err) {
       setError('Invalid payment request link')
     } finally {
@@ -54,14 +66,10 @@ const PayRequest = () => {
       )
 
       setTxHash(tx.hash)
-      setSuccess(true)
-
-      // Wait for transaction confirmation
-      await tx.wait()
+      setShowTransactionStatus(true)
       
     } catch (err) {
       setError(err.message)
-    } finally {
       setIsProcessing(false)
     }
   }
@@ -84,8 +92,18 @@ const PayRequest = () => {
       <div className="max-w-md mx-auto text-center py-12">
         <div className="card">
           <XCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Invalid Request</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            {linkExpired ? 'Link Expired' : 'Invalid Request'}
+          </h2>
           <p className="text-gray-600 mb-6">{error}</p>
+          {linkExpired && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+              <p className="text-yellow-700 text-sm">
+                This payment link has expired for security reasons. 
+                Please request a new payment link from the sender.
+              </p>
+            </div>
+          )}
           <button
             onClick={() => navigate('/')}
             className="btn-primary"
@@ -93,6 +111,24 @@ const PayRequest = () => {
             Go Home
           </button>
         </div>
+      </div>
+    )
+  }
+
+  if (showTransactionStatus) {
+    return (
+      <div className="max-w-md mx-auto py-8">
+        <TransactionStatus 
+          txHash={txHash}
+          onComplete={(receipt) => {
+            setSuccess(true)
+            setShowTransactionStatus(false)
+          }}
+          onError={(error) => {
+            setError(error)
+            setShowTransactionStatus(false)
+          }}
+        />
       </div>
     )
   }
@@ -106,14 +142,6 @@ const PayRequest = () => {
           <p className="text-gray-600 mb-4">
             Your payment of {paymentData.amount} SHM has been sent successfully.
           </p>
-          {txHash && (
-            <div className="bg-gray-50 rounded-lg p-4 mb-6">
-              <p className="text-sm text-gray-600 mb-2">Transaction Hash:</p>
-              <p className="text-xs font-mono text-gray-800 break-all">
-                {txHash}
-              </p>
-            </div>
-          )}
           <button
             onClick={() => navigate('/')}
             className="btn-primary"
@@ -137,6 +165,20 @@ const PayRequest = () => {
       <div className="card">
         {paymentData && (
           <div className="space-y-6">
+            {/* Countdown Timer */}
+            {paymentData.expiry && (
+              <div className="text-center">
+                <CountdownTimer 
+                  expiryTimestamp={paymentData.expiry}
+                  onExpire={() => {
+                    setLinkExpired(true)
+                    setError('Payment link has expired')
+                    setPaymentData(null) // Clear payment data when expired
+                  }}
+                />
+              </div>
+            )}
+            
             {/* Payment Details */}
             <div className="text-center">
               <div className="text-3xl font-bold text-gray-900 mb-2">

@@ -1,8 +1,10 @@
 import React, { useState } from 'react'
 import { useWallet } from '../contexts/WalletContext'
 import { QRCodeSVG } from 'qrcode.react'
-import { Copy, Download, Share2, Check, AlertCircle } from 'lucide-react'
+import { Copy, Download, Share2, Check, AlertCircle, Clock } from 'lucide-react'
 import { ethers } from 'ethers'
+import { generateSecurePaymentLink, generateOneClickPaymentURI } from '../utils/paymentUtils'
+import CountdownTimer from '../components/CountdownTimer'
 
 const CreatePayment = () => {
   const { account } = useWallet()
@@ -13,10 +15,13 @@ const CreatePayment = () => {
   })
   const [generatedData, setGeneratedData] = useState({
     walletURI: '',
-    webLink: ''
+    webLink: '',
+    expiryTimestamp: null
   })
   const [copied, setCopied] = useState({ walletURI: false, webLink: false })
   const [errors, setErrors] = useState({})
+  const [expirySeconds, setExpirySeconds] = useState(30)
+  const [isExpired, setIsExpired] = useState(false)
 
   const validateForm = () => {
     const newErrors = {}
@@ -45,17 +50,25 @@ const CreatePayment = () => {
       timestamp: Date.now()
     }
 
-    // Create a direct payment URI that will trigger wallet
-    const paymentURI = `ethereum:${formData.walletAddress}@8083?value=${ethers.parseEther(formData.amount.toString()).toString()}`
-    
-    // Also create a web link for the app
-    const encodedData = btoa(JSON.stringify(paymentData))
+    // Create secure payment links with expiry
+    const encodedData = generateSecurePaymentLink(paymentData, expirySeconds)
     const webLink = `${window.location.origin}/pay/${encodedData}`
+    
+    // Create one-click payment URI with expiry
+    const paymentURI = generateOneClickPaymentURI(
+      formData.walletAddress, 
+      ethers.parseEther(formData.amount.toString()).toString(),
+      expirySeconds
+    )
+    
+    const expiryTimestamp = Date.now() + (expirySeconds * 1000)
     
     setGeneratedData({
       walletURI: paymentURI,
-      webLink: webLink
+      webLink: webLink,
+      expiryTimestamp: expiryTimestamp
     })
+    setIsExpired(false) // Reset expired state when generating new link
   }
 
   const copyToClipboard = async (type) => {
@@ -182,11 +195,35 @@ const CreatePayment = () => {
               />
             </div>
 
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Link Expiry (Seconds)
+              </label>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="number"
+                  min="10"
+                  max="300"
+                  value={expirySeconds}
+                  onChange={(e) => setExpirySeconds(parseInt(e.target.value) || 30)}
+                  className="input-field flex-1"
+                  placeholder="30"
+                />
+                <div className="flex items-center space-x-1 text-sm text-gray-500">
+                  <Clock className="w-4 h-4" />
+                  <span>seconds</span>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Payment link will expire after this time (10-300 seconds)
+              </p>
+            </div>
+
             <button
               onClick={generatePaymentLink}
               className="btn-primary w-full py-3"
             >
-              Generate Payment Link
+              Generate Secure Payment Link
             </button>
           </div>
         </div>
@@ -195,8 +232,27 @@ const CreatePayment = () => {
         <div className="card">
           <h2 className="text-xl font-semibold text-gray-900 mb-6">Payment QR Code</h2>
           
-          {generatedData.walletURI ? (
+          {generatedData.walletURI && !isExpired ? (
             <div className="space-y-6">
+              {/* Countdown Timer */}
+              {generatedData.expiryTimestamp && (
+                <div className="text-center">
+                  <CountdownTimer 
+                    expiryTimestamp={generatedData.expiryTimestamp}
+                    onExpire={() => {
+                      // Clear all generated data when expired
+                      setGeneratedData({
+                        walletURI: '',
+                        webLink: '',
+                        expiryTimestamp: null
+                      })
+                      setIsExpired(true)
+                      setCopied({ walletURI: false, webLink: false })
+                    }}
+                  />
+                </div>
+              )}
+              
               <div className="flex justify-center">
                 <div className="bg-white p-4 rounded-lg border">
                   <QRCodeSVG
@@ -274,13 +330,39 @@ const CreatePayment = () => {
                 </div>
               </div>
             </div>
+          ) : isExpired ? (
+            <div className="text-center py-12">
+              <div className="w-32 h-32 bg-red-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <span className="text-4xl">⏰</span>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Payment Link Expired
+              </h3>
+              <p className="text-gray-600 mb-6">
+                The payment link has expired for security reasons. 
+                Generate a new payment link to continue.
+              </p>
+              <button
+                onClick={() => {
+                  setIsExpired(false)
+                  setGeneratedData({
+                    walletURI: '',
+                    webLink: '',
+                    expiryTimestamp: null
+                  })
+                }}
+                className="btn-primary"
+              >
+                Generate New Link
+              </button>
+            </div>
           ) : (
             <div className="text-center py-12">
               <div className="w-32 h-32 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-4">
                 <span className="text-4xl">📱</span>
               </div>
               <p className="text-gray-500">
-                Fill out the payment details and click "Generate Payment Link" to create your QR code
+                Fill out the payment details and click "Generate Secure Payment Link" to create your QR code
               </p>
             </div>
           )}
@@ -288,7 +370,7 @@ const CreatePayment = () => {
       </div>
 
       {/* Instructions */}
-      {generatedData.walletURI && (
+      {generatedData.walletURI && !isExpired && (
         <div className="card mt-8">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">How to Use</h3>
           <div className="grid md:grid-cols-3 gap-4 text-sm">

@@ -1,10 +1,18 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { useWallet } from '../contexts/WalletContext'
+import ConnectionStatus from '../components/ConnectionStatus'
 import { QrCode, Plus, History, Wallet, ArrowRight, Sparkles, Users, RefreshCw } from 'lucide-react'
 
 const Home = () => {
-  const { account, balance, refreshBalance, isRefreshingBalance } = useWallet()
+  const { 
+    account, 
+    balance, 
+    refreshBalance, 
+    isRefreshingBalance, 
+    connectionStatus,
+    lastBalanceUpdate 
+  } = useWallet()
 
   const features = [
     {
@@ -39,6 +47,21 @@ const Home = () => {
 
   const handleRefreshBalance = async () => {
     await refreshBalance()
+  }
+
+  const formatLastUpdate = (timestamp) => {
+    if (!timestamp) return 'Never'
+    const now = Date.now()
+    const diff = now - timestamp
+    const seconds = Math.floor(diff / 1000)
+    const minutes = Math.floor(seconds / 60)
+    
+    if (minutes < 1) return 'Just now'
+    if (minutes < 60) return `${minutes} minutes ago`
+    const hours = Math.floor(minutes / 60)
+    if (hours < 24) return `${hours} hours ago`
+    const days = Math.floor(hours / 24)
+    return `${days} days ago`
   }
 
   return (
@@ -80,8 +103,13 @@ const Home = () => {
         )}
       </div>
 
+      {/* Connection Status */}
+      <div className="mb-8">
+        <ConnectionStatus showDetails={true} />
+      </div>
+
       {/* Wallet Status */}
-      {account && (
+      {account && connectionStatus === 'connected' && (
         <div className="card mb-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -110,13 +138,18 @@ const Home = () => {
                 <button
                   onClick={handleRefreshBalance}
                   disabled={isRefreshingBalance}
-                  className="text-shardeum-600 hover:text-shardeum-700 disabled:opacity-50"
+                  className="text-shardeum-600 hover:text-shardeum-700 disabled:opacity-50 transition-colors"
                   title="Refresh balance"
                 >
-                  <RefreshCw className={`w-4 h-4 ${isRefreshingBalance ? 'animate-spin' : ''}`} />
+                  <RefreshCw className={`w-5 h-5 ${isRefreshingBalance ? 'animate-spin' : ''}`} />
                 </button>
               </div>
               <div className="text-sm text-gray-500">Available Balance</div>
+              {lastBalanceUpdate && (
+                <div className="text-xs text-gray-400 mt-1">
+                  Last updated: {formatLastUpdate(lastBalanceUpdate)}
+                </div>
+              )}
             </div>
           </div>
         </div>

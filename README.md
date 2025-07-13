@@ -12,6 +12,14 @@ A modern dApp that allows users to create payment request links and QR codes for
 - **Multi-Account Support**: Manage payments from different wallet addresses
 - **Payment Splitting**: Split amounts among multiple recipients automatically
 
+### Persistent Connection Features
+- **Auto-Reconnection**: Automatically reconnects wallet on page reload
+- **Connection Persistence**: Remembers connected wallet across browser sessions
+- **Connection Strength Monitoring**: Real-time connection health and latency tracking
+- **Network Validation**: Automatic network switching and validation
+- **Error Recovery**: Intelligent error handling with automatic retry mechanisms
+- **Connection Status Indicators**: Visual feedback for connection health
+
 ### Real-time Features
 - **Live Balance Updates**: Automatic balance refresh after transactions
 - **Transaction Monitoring**: Real-time transaction status tracking
@@ -23,6 +31,7 @@ A modern dApp that allows users to create payment request links and QR codes for
 - **Mobile-First**: Optimized for mobile devices with touch-friendly interface
 - **Real-time Updates**: Live balance updates and transaction status
 - **Error Handling**: Comprehensive error handling and user feedback
+- **Connection Health**: Detailed connection status with latency and strength metrics
 
 ## 🛠️ Tech Stack
 
@@ -33,6 +42,7 @@ A modern dApp that allows users to create payment request links and QR codes for
 - **Icons**: Lucide React
 - **Routing**: React Router DOM
 - **State Management**: React Context API with localStorage persistence
+- **Network Utilities**: Custom network validation and connection strengthening
 
 ## 📋 Prerequisites
 
@@ -73,7 +83,34 @@ The app automatically configures the Shardeum Sphinx network in MetaMask. Networ
 - **Currency Symbol**: SHM
 - **Block Explorer**: https://explorer-testnet.shardeum.org/
 
+### Persistent Connection Setup
+
+The app automatically handles wallet connection persistence:
+
+- **Auto-Reconnection**: Automatically reconnects on page reload
+- **Session Persistence**: Remembers wallet across browser sessions
+- **Network Validation**: Ensures correct network connection
+- **Connection Monitoring**: Continuous health checks every 30 seconds
+
 ## 📱 How to Use
+
+### Wallet Connection
+
+1. **Initial Connection**: Click "Connect Wallet" to connect MetaMask
+2. **Auto-Reconnection**: Wallet automatically reconnects on page reload
+3. **Connection Status**: View detailed connection health in the header
+4. **Network Validation**: App automatically switches to Shardeum network
+5. **Error Recovery**: Automatic retry with intelligent error handling
+
+### Connection Health Monitoring
+
+The app provides detailed connection information:
+
+- **Connection Status**: Connected, Connecting, Error, or Disconnected
+- **Latency**: Real-time connection latency measurement
+- **Connection Strength**: Strong, Weak, or Unstable connection
+- **Network Validation**: Ensures correct Shardeum network connection
+- **Auto-Recovery**: Automatic reconnection attempts on connection loss
 
 ### Creating a Payment Request
 
@@ -117,6 +154,8 @@ The app automatically configures the Shardeum Sphinx network in MetaMask. Networ
 - **Error Handling**: Graceful error handling with user-friendly messages
 - **Transaction Monitoring**: Real-time transaction status tracking
 - **Local Storage**: Secure transaction history persistence
+- **Connection Security**: Robust connection validation and error recovery
+- **Auto-Reconnection**: Intelligent reconnection with exponential backoff
 
 ## 🎨 UI Components
 
@@ -126,11 +165,18 @@ The app automatically configures the Shardeum Sphinx network in MetaMask. Networ
 - **Components**: Reusable button, input, and card components
 - **Animations**: Smooth transitions and loading states
 
+### Connection Status Components
+- **ConnectionStatus**: Detailed connection health display
+- **Status Indicators**: Visual connection status in header
+- **Health Monitoring**: Real-time connection metrics
+- **Error Recovery**: User-friendly error messages and recovery options
+
 ### Real-time Features
 - **Balance Display**: Live balance with refresh button
 - **Transaction Notifications**: Desktop notifications for transaction updates
 - **Status Indicators**: Visual status indicators for transaction states
 - **Loading States**: Smooth loading animations during transactions
+- **Connection Monitoring**: Continuous connection health checks
 
 ### Responsive Design
 - **Mobile**: Touch-friendly interface with bottom navigation
@@ -143,6 +189,7 @@ The app automatically configures the Shardeum Sphinx network in MetaMask. Networ
 src/
 ├── components/          # Reusable UI components
 │   ├── Header.jsx     # Navigation and wallet connection
+│   ├── ConnectionStatus.jsx # Connection health display
 │   ├── TransactionStatus.jsx # Transaction status display
 │   ├── TransactionNotification.jsx # Real-time notifications
 │   └── CountdownTimer.jsx # Payment link expiry timer
@@ -157,7 +204,8 @@ src/
 │   └── PaymentSplit.jsx # Payment splitting functionality
 ├── utils/              # Utility functions
 │   ├── helpers.js     # Common utility functions
-│   └── paymentUtils.js # Payment-specific utilities
+│   ├── paymentUtils.js # Payment-specific utilities
+│   └── networkUtils.js # Network validation and connection utilities
 ├── App.jsx            # Main app component with transaction monitor
 ├── main.jsx          # Application entry point
 └── index.css         # Global styles

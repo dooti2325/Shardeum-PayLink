@@ -1,5 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { ethers } from 'ethers'
+import { 
+  SHARDEUM_CONFIG, 
+  switchToShardeumNetwork, 
+  validateWalletConnection, 
+  createRobustProvider,
+  getDetailedConnectionStatus,
+  fetchBalanceWithRetry
+} from '../utils/networkUtils'
 
 const WalletContext = createContext()
 
@@ -20,19 +28,37 @@ export const WalletProvider = ({ children }) => {
   const [error, setError] = useState(null)
   const [transactions, setTransactions] = useState([])
   const [isRefreshingBalance, setIsRefreshingBalance] = useState(false)
+  const [connectionStatus, setConnectionStatus] = useState('disconnected') // 'disconnected', 'connecting', 'connected', 'error'
+  const [lastConnectedAccount, setLastConnectedAccount] = useState(null)
+  const [reconnectAttempts, setReconnectAttempts] = useState(0)
+  const [maxReconnectAttempts] = useState(5)
+  const [connectionDetails, setConnectionDetails] = useState(null)
+  const [lastBalanceUpdate, setLastBalanceUpdate] = useState(null)
 
-  // Shardeum Sphinx network configuration
-  const SHARDEUM_CONFIG = {
-    chainId: '0x1F93', // 8083 in decimal
-    chainName: 'Shardeum Testnet',
-    nativeCurrency: {
-      name: 'SHM',
-      symbol: 'SHM',
-      decimals: 18,
-    },
-    rpcUrls: ['https://api-testnet.shardeum.org/'],
-    blockExplorerUrls: ['https://explorer-testnet.shardeum.org/'],
-  }
+  // Load saved wallet state from localStorage
+  useEffect(() => {
+    const savedAccount = localStorage.getItem('shardeum_connected_account')
+    const savedConnectionStatus = localStorage.getItem('shardeum_connection_status')
+    
+    if (savedAccount && savedConnectionStatus === 'connected') {
+      setLastConnectedAccount(savedAccount)
+      // Auto-reconnect on page load
+      setTimeout(() => {
+        autoReconnect()
+      }, 1000) // Small delay to ensure everything is loaded
+    }
+  }, [])
+
+  // Save connection state to localStorage
+  useEffect(() => {
+    if (account && connectionStatus === 'connected') {
+      localStorage.setItem('shardeum_connected_account', account)
+      localStorage.setItem('shardeum_connection_status', 'connected')
+    } else if (connectionStatus === 'disconnected') {
+      localStorage.removeItem('shardeum_connected_account')
+      localStorage.setItem('shardeum_connection_status', 'disconnected')
+    }
+  }, [account, connectionStatus])
 
   // Load transactions from localStorage on mount
   useEffect(() => {
@@ -53,16 +79,114 @@ export const WalletProvider = ({ children }) => {
     }
   }, [transactions])
 
-  // Refresh balance function
+  // Validate and strengthen connection
+  const validateAndStrengthenConnection = async (provider, account) => {
+    try {
+      const validation = await validateWalletConnection(provider, account)
+      
+      if (!validation.valid) {
+        throw new Error(validation.error)
+      }
+      
+      if (!validation.isCorrectNetwork) {
+        await switchToShardeumNetwork()
+        // Re-validate after network switch
+        const revalidation = await validateWalletConnection(provider, account)
+        if (!revalidation.valid || !revalidation.isCorrectNetwork) {
+          throw new Error('Failed to switch to correct network')
+        }
+      }
+      
+      setConnectionDetails(validation.details)
+      return validation
+    } catch (error) {
+      throw new Error(`Connection validation failed: ${error.message}`)
+    }
+  }
+
+  // Auto-reconnect function with enhanced error handling
+  const autoReconnect = async () => {
+    if (reconnectAttempts >= maxReconnectAttempts) {
+      setConnectionStatus('error')
+      setError('Max reconnection attempts reached. Please connect manually.')
+      return
+    }
+
+    if (!window.ethereum) {
+      setConnectionStatus('error')
+      setError('MetaMask is not installed.')
+      return
+    }
+
+    setConnectionStatus('connecting')
+    setReconnectAttempts(prev => prev + 1)
+
+    try {
+      // Check if MetaMask is already connected
+      const accounts = await window.ethereum.request({
+        method: 'eth_accounts', // Use eth_accounts instead of eth_requestAccounts for auto-reconnect
+      })
+
+      if (accounts.length === 0) {
+        throw new Error('No accounts found')
+      }
+
+      const account = accounts[0]
+      
+      // Create robust provider with enhanced error handling
+      const provider = createRobustProvider()
+      const signer = await provider.getSigner()
+
+      // Validate and strengthen connection
+      const validation = await validateAndStrengthenConnection(provider, account)
+
+      setAccount(account)
+      setProvider(provider)
+      setSigner(signer)
+      setConnectionStatus('connected')
+      setError(null)
+      setReconnectAttempts(0)
+
+      // Get balance using enhanced balance fetching
+      const balance = await fetchBalanceWithRetry(provider, account)
+      setBalance(balance)
+      setLastBalanceUpdate(Date.now())
+
+      // Add received transactions
+      await addReceivedTransactions()
+
+    } catch (err) {
+      console.error('Auto-reconnect failed:', err)
+      setConnectionStatus('error')
+      setError(`Auto-reconnect failed: ${err.message}`)
+      
+      // Retry after a delay
+      setTimeout(() => {
+        autoReconnect()
+      }, 3000)
+    }
+  }
+
+  // Refresh balance function with enhanced error handling
   const refreshBalance = async () => {
     if (!account || !provider) return
 
     setIsRefreshingBalance(true)
     try {
-      const balance = await provider.getBalance(account)
-      setBalance(ethers.formatEther(balance))
+      const balance = await fetchBalanceWithRetry(provider, account)
+      setBalance(balance)
+      setLastBalanceUpdate(Date.now())
+      console.log('Balance updated successfully:', balance)
     } catch (err) {
       console.error('Error refreshing balance:', err)
+      // If balance refresh fails, it might indicate a connection issue
+      if (err.message.includes('network') || err.message.includes('connection')) {
+        setConnectionStatus('error')
+        setError('Connection lost. Attempting to reconnect...')
+        setTimeout(() => {
+          autoReconnect()
+        }, 2000)
+      }
     } finally {
       setIsRefreshingBalance(false)
     }
@@ -93,6 +217,8 @@ export const WalletProvider = ({ children }) => {
   const connectWallet = async () => {
     setIsConnecting(true)
     setError(null)
+    setConnectionStatus('connecting')
+    setReconnectAttempts(0)
     
     try {
       if (!window.ethereum) {
@@ -110,45 +236,30 @@ export const WalletProvider = ({ children }) => {
 
       const account = accounts[0]
       
-      // Create provider and signer
-      const provider = new ethers.BrowserProvider(window.ethereum)
+      // Create robust provider with enhanced error handling
+      const provider = createRobustProvider()
       const signer = await provider.getSigner()
 
-      // Check if we're on the correct network
-      const network = await provider.getNetwork()
-      if (network.chainId !== BigInt(SHARDEUM_CONFIG.chainId)) {
-        // Try to switch to Shardeum network
-        try {
-          await window.ethereum.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: SHARDEUM_CONFIG.chainId }],
-          })
-        } catch (switchError) {
-          // If the network doesn't exist, add it
-          if (switchError.code === 4902) {
-            await window.ethereum.request({
-              method: 'wallet_addEthereumChain',
-              params: [SHARDEUM_CONFIG],
-            })
-          } else {
-            throw switchError
-          }
-        }
-      }
+      // Validate and strengthen connection
+      const validation = await validateAndStrengthenConnection(provider, account)
 
       setAccount(account)
       setProvider(provider)
       setSigner(signer)
+      setConnectionStatus('connected')
+      setLastConnectedAccount(account)
 
-      // Get balance
-      const balance = await provider.getBalance(account)
-      setBalance(ethers.formatEther(balance))
+      // Get balance using enhanced balance fetching
+      const balance = await fetchBalanceWithRetry(provider, account)
+      setBalance(balance)
+      setLastBalanceUpdate(Date.now())
 
       // Add received transactions
       await addReceivedTransactions()
 
     } catch (err) {
       setError(err.message)
+      setConnectionStatus('error')
       console.error('Error connecting wallet:', err)
     } finally {
       setIsConnecting(false)
@@ -161,6 +272,11 @@ export const WalletProvider = ({ children }) => {
     setSigner(null)
     setBalance('0')
     setError(null)
+    setConnectionStatus('disconnected')
+    setLastConnectedAccount(null)
+    setReconnectAttempts(0)
+    setConnectionDetails(null)
+    setLastBalanceUpdate(null)
   }
 
   const sendTransaction = async (to, amount, data = '', message = '') => {
@@ -169,6 +285,14 @@ export const WalletProvider = ({ children }) => {
     }
 
     try {
+      // Validate connection before sending transaction
+      if (provider && account) {
+        const validation = await validateWalletConnection(provider, account)
+        if (!validation.valid) {
+          throw new Error('Connection validation failed. Please reconnect your wallet.')
+        }
+      }
+
       const tx = await signer.sendTransaction({
         to,
         value: ethers.parseEther(amount.toString()),
@@ -192,6 +316,11 @@ export const WalletProvider = ({ children }) => {
 
       return tx
     } catch (err) {
+      // Check if it's a connection-related error
+      if (err.message.includes('network') || err.message.includes('connection')) {
+        setConnectionStatus('error')
+        setError('Connection lost. Please reconnect your wallet.')
+      }
       throw new Error(`Transaction failed: ${err.message}`)
     }
   }
@@ -322,15 +451,32 @@ export const WalletProvider = ({ children }) => {
         window.location.reload()
       }
 
+      const handleConnect = () => {
+        console.log('MetaMask connected')
+        if (lastConnectedAccount) {
+          autoReconnect()
+        }
+      }
+
+      const handleDisconnect = () => {
+        console.log('MetaMask disconnected')
+        setConnectionStatus('disconnected')
+        setError('Wallet disconnected')
+      }
+
       window.ethereum.on('accountsChanged', handleAccountsChanged)
       window.ethereum.on('chainChanged', handleChainChanged)
+      window.ethereum.on('connect', handleConnect)
+      window.ethereum.on('disconnect', handleDisconnect)
 
       return () => {
         window.ethereum.removeListener('accountsChanged', handleAccountsChanged)
         window.ethereum.removeListener('chainChanged', handleChainChanged)
+        window.ethereum.removeListener('connect', handleConnect)
+        window.ethereum.removeListener('disconnect', handleDisconnect)
       }
     }
-  }, [account, provider])
+  }, [account, provider, lastConnectedAccount])
 
   // Auto-refresh balance when account or provider changes
   useEffect(() => {
@@ -338,6 +484,49 @@ export const WalletProvider = ({ children }) => {
       refreshBalance()
     }
   }, [account, provider])
+
+  // Periodic balance refresh (every 30 seconds when connected)
+  useEffect(() => {
+    if (connectionStatus === 'connected' && account && provider) {
+      const balanceInterval = setInterval(() => {
+        refreshBalance()
+      }, 30000) // Refresh every 30 seconds
+
+      return () => clearInterval(balanceInterval)
+    }
+  }, [connectionStatus, account, provider])
+
+  // Periodic connection health check with detailed validation
+  useEffect(() => {
+    if (connectionStatus === 'connected' && provider && account) {
+      const healthCheck = setInterval(async () => {
+        try {
+          const detailedStatus = await getDetailedConnectionStatus(provider, account)
+          
+          if (detailedStatus.status !== 'connected') {
+            console.error('Connection health check failed:', detailedStatus.error)
+            setConnectionStatus('error')
+            setError(`Connection lost: ${detailedStatus.error}`)
+            setTimeout(() => {
+              autoReconnect()
+            }, 2000)
+          } else {
+            // Update connection details
+            setConnectionDetails(detailedStatus.details)
+          }
+        } catch (err) {
+          console.error('Connection health check failed:', err)
+          setConnectionStatus('error')
+          setError('Connection lost. Attempting to reconnect...')
+          setTimeout(() => {
+            autoReconnect()
+          }, 2000)
+        }
+      }, 30000) // Check every 30 seconds
+
+      return () => clearInterval(healthCheck)
+    }
+  }, [connectionStatus, provider, account])
 
   const value = {
     account,
@@ -348,6 +537,12 @@ export const WalletProvider = ({ children }) => {
     isRefreshingBalance,
     error,
     transactions,
+    connectionStatus,
+    lastConnectedAccount,
+    reconnectAttempts,
+    maxReconnectAttempts,
+    connectionDetails,
+    lastBalanceUpdate,
     connectWallet,
     disconnectWallet,
     sendTransaction,
@@ -356,6 +551,7 @@ export const WalletProvider = ({ children }) => {
     addTransaction,
     updateTransactionStatus,
     addReceivedTransactions,
+    autoReconnect,
     SHARDEUM_CONFIG,
   }
 

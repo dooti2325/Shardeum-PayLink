@@ -9,7 +9,7 @@ import CountdownTimer from '../components/CountdownTimer'
 const PayRequest = () => {
   const { requestId } = useParams()
   const navigate = useNavigate()
-  const { account, connectWallet, sendTransaction, balance } = useWallet()
+  const { account, balance, sendTransaction, refreshBalance, isRefreshingBalance } = useWallet()
   
   const [paymentData, setPaymentData] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -59,10 +59,12 @@ const PayRequest = () => {
         throw new Error('Insufficient balance')
       }
 
-      // Send transaction
+      // Send transaction with message
       const tx = await sendTransaction(
         paymentData.to,
-        paymentData.amount.toString()
+        paymentData.amount.toString(),
+        '', // data
+        paymentData.message || 'Payment' // message
       )
 
       setTxHash(tx.hash)
@@ -120,7 +122,9 @@ const PayRequest = () => {
       <div className="max-w-md mx-auto py-8">
         <TransactionStatus 
           txHash={txHash}
-          onComplete={(receipt) => {
+          onComplete={async (receipt) => {
+            // Refresh balance after successful transaction
+            await refreshBalance()
             setSuccess(true)
             setShowTransactionStatus(false)
           }}
@@ -208,7 +212,9 @@ const PayRequest = () => {
               {account && (
                 <div className="flex justify-between">
                   <span className="text-gray-600">Your Balance:</span>
-                  <span className="font-mono text-sm">{parseFloat(balance).toFixed(4)} SHM</span>
+                  <span className="font-mono text-sm">
+                    {isRefreshingBalance ? 'Updating...' : `${parseFloat(balance).toFixed(4)} SHM`}
+                  </span>
                 </div>
               )}
             </div>

@@ -8,8 +8,15 @@ A modern dApp that allows users to create payment request links and QR codes for
 - **Create Payment Requests**: Generate shareable payment links and QR codes
 - **QR Code Scanner**: Scan payment QR codes to quickly pay with pre-filled details
 - **Wallet Integration**: Seamless MetaMask integration with Shardeum network support
-- **Transaction History**: View past sent and received transactions
+- **Transaction History**: View past sent and received transactions with real-time updates
 - **Multi-Account Support**: Manage payments from different wallet addresses
+- **Payment Splitting**: Split amounts among multiple recipients automatically
+
+### Real-time Features
+- **Live Balance Updates**: Automatic balance refresh after transactions
+- **Transaction Monitoring**: Real-time transaction status tracking
+- **Transaction Notifications**: Desktop notifications for transaction updates
+- **Local Storage**: Persistent transaction history across sessions
 
 ### User Experience
 - **Modern UI**: Beautiful, responsive design with Tailwind CSS
@@ -25,6 +32,7 @@ A modern dApp that allows users to create payment request links and QR codes for
 - **QR Codes**: qrcode.react + html5-qrcode for scanning
 - **Icons**: Lucide React
 - **Routing**: React Router DOM
+- **State Management**: React Context API with localStorage persistence
 
 ## 📋 Prerequisites
 
@@ -88,7 +96,18 @@ The app automatically configures the Shardeum Sphinx network in MetaMask. Networ
 
 1. Navigate to "History" page
 2. Filter transactions by type (All/Sent/Received)
-3. Click "View" to open transaction on block explorer
+3. Click "Refresh" to update balance and transactions
+4. Click "View" to open transaction on block explorer
+5. Click "Details" to see transaction information
+
+### Splitting Payments
+
+1. Navigate to "Split Payments" page
+2. Enter total amount to split
+3. Choose split type (Equal, Percentage, Custom)
+4. Add recipient addresses and amounts
+5. Review split distribution
+6. Send payments to all recipients
 
 ## 🔐 Security Features
 
@@ -96,6 +115,8 @@ The app automatically configures the Shardeum Sphinx network in MetaMask. Networ
 - **Balance Checks**: Automatic balance verification before transactions
 - **Network Validation**: Ensures transactions are sent on correct network
 - **Error Handling**: Graceful error handling with user-friendly messages
+- **Transaction Monitoring**: Real-time transaction status tracking
+- **Local Storage**: Secure transaction history persistence
 
 ## 🎨 UI Components
 
@@ -104,6 +125,12 @@ The app automatically configures the Shardeum Sphinx network in MetaMask. Networ
 - **Typography**: Inter font family
 - **Components**: Reusable button, input, and card components
 - **Animations**: Smooth transitions and loading states
+
+### Real-time Features
+- **Balance Display**: Live balance with refresh button
+- **Transaction Notifications**: Desktop notifications for transaction updates
+- **Status Indicators**: Visual status indicators for transaction states
+- **Loading States**: Smooth loading animations during transactions
 
 ### Responsive Design
 - **Mobile**: Touch-friendly interface with bottom navigation
@@ -115,16 +142,23 @@ The app automatically configures the Shardeum Sphinx network in MetaMask. Networ
 ```
 src/
 ├── components/          # Reusable UI components
-│   └── Header.jsx     # Navigation and wallet connection
+│   ├── Header.jsx     # Navigation and wallet connection
+│   ├── TransactionStatus.jsx # Transaction status display
+│   ├── TransactionNotification.jsx # Real-time notifications
+│   └── CountdownTimer.jsx # Payment link expiry timer
 ├── contexts/           # React contexts
-│   └── WalletContext.jsx # Wallet and blockchain state
+│   └── WalletContext.jsx # Wallet and blockchain state management
 ├── pages/              # Application pages
-│   ├── Home.jsx       # Landing page
+│   ├── Home.jsx       # Landing page with balance display
 │   ├── CreatePayment.jsx # Payment request creation
 │   ├── PayRequest.jsx # Payment processing
 │   ├── QRScanner.jsx  # QR code scanning
-│   └── History.jsx    # Transaction history
-├── App.jsx            # Main app component
+│   ├── History.jsx    # Transaction history with filters
+│   └── PaymentSplit.jsx # Payment splitting functionality
+├── utils/              # Utility functions
+│   ├── helpers.js     # Common utility functions
+│   └── paymentUtils.js # Payment-specific utilities
+├── App.jsx            # Main app component with transaction monitor
 ├── main.jsx          # Application entry point
 └── index.css         # Global styles
 ```

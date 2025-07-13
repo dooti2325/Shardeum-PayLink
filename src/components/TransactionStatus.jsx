@@ -4,7 +4,7 @@ import { CheckCircle, XCircle, Clock, Loader, ExternalLink, Copy } from 'lucide-
 import { checkTransactionStatus, formatGasUsed, getStatusColor } from '../utils/helpers'
 
 const TransactionStatus = ({ txHash, onComplete, onError }) => {
-  const { provider } = useWallet()
+  const { provider, updateTransactionStatus } = useWallet()
   const [status, setStatus] = useState('pending') // pending, confirmed, failed
   const [receipt, setReceipt] = useState(null)
   const [error, setError] = useState(null)
@@ -27,11 +27,19 @@ const TransactionStatus = ({ txHash, onComplete, onError }) => {
           setReceipt(result.receipt)
           setGasUsed(result.gasUsed)
           setBlockNumber(result.blockNumber)
+          
+          // Update transaction status in context
+          updateTransactionStatus(txHash, 'confirmed', result.receipt)
+          
           onComplete?.(result.receipt)
           return true
         } else if (result.status === 'failed') {
           setStatus('failed')
           setError('Transaction failed')
+          
+          // Update transaction status in context
+          updateTransactionStatus(txHash, 'failed', result.receipt)
+          
           onError?.('Transaction failed')
           return true
         } else if (result.status === 'pending') {
@@ -63,6 +71,10 @@ const TransactionStatus = ({ txHash, onComplete, onError }) => {
           clearInterval(interval)
           setStatus('failed')
           setError('Transaction timeout - please check your wallet')
+          
+          // Update transaction status in context
+          updateTransactionStatus(txHash, 'timeout')
+          
           onError?.('Transaction timeout')
         }, 300000) // 5 minutes
       }
@@ -72,7 +84,7 @@ const TransactionStatus = ({ txHash, onComplete, onError }) => {
       if (interval) clearInterval(interval)
       if (timeout) clearTimeout(timeout)
     }
-  }, [txHash, provider, onComplete, onError])
+  }, [txHash, provider, onComplete, onError, updateTransactionStatus])
 
   const getStatusIcon = () => {
     switch (status) {

@@ -1,10 +1,10 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { useWallet } from '../contexts/WalletContext'
-import { QrCode, Plus, History, Wallet, ArrowRight, Sparkles, Users } from 'lucide-react'
+import { QrCode, Plus, History, Wallet, ArrowRight, Sparkles, Users, RefreshCw } from 'lucide-react'
 
 const Home = () => {
-  const { account, balance } = useWallet()
+  const { account, balance, refreshBalance, isRefreshingBalance } = useWallet()
 
   const features = [
     {
@@ -37,6 +37,10 @@ const Home = () => {
     }
   ]
 
+  const handleRefreshBalance = async () => {
+    await refreshBalance()
+  }
+
   return (
     <div className="max-w-6xl mx-auto">
       {/* Hero Section */}
@@ -44,7 +48,7 @@ const Home = () => {
         <div className="mb-6">
           <div className="inline-flex items-center space-x-2 bg-shardeum-100 text-shardeum-700 px-4 py-2 rounded-full text-sm font-medium mb-4">
             <Sparkles className="w-4 h-4" />
-            <span>Powered by Shardeum Sphinx Network</span>
+            <span>Powered by Shardeum</span>
           </div>
           <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-4">
             Decentralized Payment
@@ -92,8 +96,25 @@ const Home = () => {
               </div>
             </div>
             <div className="text-right">
-              <div className="text-2xl font-bold text-gray-900">
-                {parseFloat(balance).toFixed(4)} SHM
+              <div className="flex items-center justify-end space-x-2 mb-2">
+                <div className="text-2xl font-bold text-gray-900">
+                  {isRefreshingBalance ? (
+                    <div className="flex items-center space-x-2">
+                      <RefreshCw className="w-5 h-5 animate-spin text-shardeum-600" />
+                      <span>Updating...</span>
+                    </div>
+                  ) : (
+                    `${parseFloat(balance).toFixed(4)} SHM`
+                  )}
+                </div>
+                <button
+                  onClick={handleRefreshBalance}
+                  disabled={isRefreshingBalance}
+                  className="text-shardeum-600 hover:text-shardeum-700 disabled:opacity-50"
+                  title="Refresh balance"
+                >
+                  <RefreshCw className={`w-4 h-4 ${isRefreshingBalance ? 'animate-spin' : ''}`} />
+                </button>
               </div>
               <div className="text-sm text-gray-500">Available Balance</div>
             </div>

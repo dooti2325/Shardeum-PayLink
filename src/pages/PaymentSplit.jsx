@@ -3,7 +3,7 @@ import { useWallet } from '../contexts/WalletContext'
 import { Plus, Minus, Trash2, Send, Users, Calculator, AlertCircle } from 'lucide-react'
 
 const PaymentSplit = () => {
-  const { account, sendTransaction } = useWallet()
+  const { account, sendTransaction, refreshBalance, balance, isRefreshingBalance } = useWallet()
   const [totalAmount, setTotalAmount] = useState('')
   const [recipients, setRecipients] = useState([
     { address: '', amount: '', percentage: 0 }
@@ -135,7 +135,7 @@ const PaymentSplit = () => {
       const amount = parseFloat(recipient.amount)
       
       try {
-        const tx = await sendTransaction(recipient.address, amount.toString())
+        const tx = await sendTransaction(recipient.address, amount.toString(), '', `Split payment ${i + 1}/${recipients.length}`)
         await tx.wait()
         success++
         setSuccessCount(success)
@@ -146,6 +146,8 @@ const PaymentSplit = () => {
       }
     }
     
+    // Refresh balance after all transactions
+    await refreshBalance()
     setIsProcessing(false)
   }
 

@@ -36,7 +36,7 @@ const QRScanner = () => {
     setError(null)
     setScannedData(null)
 
-    // Explicitly request camera access first
+    // Request camera permission first
     try {
       await navigator.mediaDevices.getUserMedia({ video: true })
     } catch (err) {

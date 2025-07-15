@@ -129,22 +129,23 @@ const PaymentSplit = () => {
     const totalNum = parseFloat(totalAmount)
     let success = 0
     let failed = 0
-    
-    for (let i = 0; i < recipients.length; i++) {
-      const recipient = recipients[i]
-      const amount = parseFloat(recipient.amount)
-      
-      try {
-        const tx = await sendTransaction(recipient.address, amount.toString(), '', `AirDrop ${i + 1}/${recipients.length}`)
-        await tx.wait()
-        success++
-        setSuccessCount(success)
-      } catch (error) {
-        console.error(`Failed to send payment to ${recipient.address}:`, error)
-        failed++
-        setFailedCount(failed)
-      }
-    }
+
+    // Send all payments in parallel (airdrop style)
+    await Promise.all(
+      recipients.map(async (recipient, i) => {
+        const amount = parseFloat(recipient.amount)
+        try {
+          const tx = await sendTransaction(recipient.address, amount.toString(), '', `Airdrop ${i + 1}/${recipients.length}`)
+          await tx.wait()
+          success++
+          setSuccessCount(prev => prev + 1)
+        } catch (error) {
+          console.error(`Failed to send payment to ${recipient.address}:`, error)
+          failed++
+          setFailedCount(prev => prev + 1)
+        }
+      })
+    )
     
     // Refresh balance after all transactions
     await refreshBalance()

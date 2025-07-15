@@ -135,7 +135,7 @@ const PaymentSplit = () => {
       const amount = parseFloat(recipient.amount)
       
       try {
-        const tx = await sendTransaction(recipient.address, amount.toString(), '', `Split payment ${i + 1}/${recipients.length}`)
+        const tx = await sendTransaction(recipient.address, amount.toString(), '', `AirDrop ${i + 1}/${recipients.length}`)
         await tx.wait()
         success++
         setSuccessCount(success)
@@ -165,7 +165,7 @@ const PaymentSplit = () => {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Payment Split</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">AirDrop Payments</h1>
         <p className="text-gray-600">
           Split a total amount among multiple recipients
         </p>
@@ -175,7 +175,7 @@ const PaymentSplit = () => {
         {/* Configuration */}
         <div className="space-y-6">
           <div className="card">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">Split Configuration</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">Drop Configuration</h2>
             
             <div className="space-y-6">
               <div>

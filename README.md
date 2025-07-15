@@ -10,7 +10,7 @@ A modern dApp that allows users to create payment request links and QR codes for
 - **Wallet Integration**: Seamless MetaMask integration with Shardeum network support
 - **Transaction History**: View past sent and received transactions with real-time updates
 - **Multi-Account Support**: Manage payments from different wallet addresses
-- **Payment Splitting**: Split amounts among multiple recipients automatically
+- **AirDrop**: Split amounts among multiple recipients automatically
 
 ### Persistent Connection Features
 - **Auto-Reconnection**: Automatically reconnects wallet on page reload
@@ -139,7 +139,7 @@ The app provides detailed connection information:
 
 ### Splitting Payments
 
-1. Navigate to "Split Payments" page
+1. Navigate to "AirDrop" page
 2. Enter total amount to split
 3. Choose split type (Equal, Percentage, Custom)
 4. Add recipient addresses and amounts
@@ -201,7 +201,7 @@ src/
 │   ├── PayRequest.jsx # Payment processing
 │   ├── QRScanner.jsx  # QR code scanning
 │   ├── History.jsx    # Transaction history with filters
-│   └── PaymentSplit.jsx # Payment splitting functionality
+│   └── PaymentSplit.jsx # Air Dropping functionality
 ├── utils/              # Utility functions
 │   ├── helpers.js     # Common utility functions
 │   ├── paymentUtils.js # Payment-specific utilities

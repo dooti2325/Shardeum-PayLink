@@ -129,7 +129,7 @@ const Header = () => {
                 }`}
               >
                 <Users size={16} />
-                <span>Split Payment</span>
+                <span>AirDrop</span>
               </Link>
               
               <Link

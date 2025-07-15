@@ -31,7 +31,7 @@ const Home = () => {
     },
     {
       icon: <Users className="w-6 h-6" />,
-      title: 'Split Payments',
+      title: 'AirDrop',
       description: 'Split a total amount among multiple recipients automatically',
       link: '/split',
       color: 'bg-orange-500'

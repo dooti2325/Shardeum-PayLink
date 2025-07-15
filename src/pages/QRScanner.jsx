@@ -31,10 +31,25 @@ const QRScanner = () => {
     }
   }, [])
 
-  const startScanner = () => {
+  const startScanner = async () => {
     setIsScanning(true)
     setError(null)
     setScannedData(null)
+
+    // Explicitly request camera access first
+    try {
+      await navigator.mediaDevices.getUserMedia({ video: true })
+    } catch (err) {
+      setIsScanning(false)
+      if (err && err.name === 'NotAllowedError') {
+        setError('Camera access was denied. Please allow camera access to scan QR codes.')
+      } else if (err && err.name === 'NotFoundError') {
+        setError('No camera device found. Please connect a camera and try again.')
+      } else {
+        setError('Unable to access camera. Please check your device settings and try again.')
+      }
+      return
+    }
 
     const scanner = new Html5QrcodeScanner(
       "qr-reader",
